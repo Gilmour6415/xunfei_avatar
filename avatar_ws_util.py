@@ -24,7 +24,9 @@ class AvatarWsUtil:
             self.websocket = await session.ws_connect(self.request_url)
             self.is_connected = True
             self.connect_event.set()
-            logger.info("WebSocket connected")
+            # logger.info("WebSocket connected")
+            # logger.info(f"websocket is {self.websocket}")
+            # logger.info(f"connection is {self.is_connected}")
 
             async for msg in self.websocket:
                 await self._handle_message(msg)
@@ -77,14 +79,25 @@ class AvatarWsUtil:
         self, request: dict, countdown_latch: Optional[asyncio.Event] = None
     ):
         self.countdown_latch = countdown_latch
+        logger.info("starting...")
         await self.connect_event.wait()
         await self.send(request)
+        logging.info("start request sent")
 
     async def send(self, request: dict):
+        await self.connect()
+
+        logger.info(
+            f"state:\
+            is connected: {self.is_connected},\
+            websocket: {self.websocket}"
+        )
         if self.is_connected and self.websocket:
             json_str = json.dumps(request)
             logger.info(f"Sending: {json_str}")
             await self.websocket.send_str(json_str)
+        else:
+            logger.info("WebSocket not connected")
 
     async def close(self):
         if self.websocket:

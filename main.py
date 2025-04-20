@@ -2,10 +2,15 @@ import asyncio
 import json
 import uuid
 import base64
+import logging
 import time
 from websockets import connect
 from auth_util import AuthUtil
 from avatar_ws_util import AvatarWsUtil
+
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # 配置参数
 avatar_url = "wss://avatar.cn-huadong-1.xf-yun.com/v1/interact"
@@ -22,26 +27,30 @@ TEXT = "欢迎来到讯飞开放平台"
 
 async def main():
     request_url = AuthUtil.assemble_request_url(avatar_url, api_key, api_secret)
-    print(f"requestUrl: {request_url}")
+    logger.info(f"requestUrl: {request_url}")
     timestamp = int(time.time() * 1000)
-    print(f"时间戳：{timestamp}")
+    logger.info(f"时间戳：{timestamp}")
 
     # async with connect(request_url) as websocket:
+    # print(websocket)
     avatar_ws_util = AvatarWsUtil(request_url)
 
     # veryfi if the websocket is connected [done]
     await avatar_ws_util.connect()
 
     # Send start frame
+    print("---buiding start request---")
     await avatar_ws_util.start(build_start_request())
 
     # Start ping task
+    print("---sending ping task---")
     asyncio.create_task(send_ping(avatar_ws_util))
 
     await asyncio.sleep(5)
 
     # Send text data
     text = "你好呀，请问你是谁，我能为您做些什么"
+    print(f"sending: {text}")
     await avatar_ws_util.send(build_text_request(text))
     await asyncio.sleep(2)
 
@@ -70,7 +79,7 @@ def build_start_request():
         "app_id": app_id,
         "ctrl": "start",
         "request_id": str(uuid.uuid4()),
-        "scene_id": "66397006335184896",
+        "scene_id": "171542078621356032",
     }
 
     parameter = {
@@ -84,12 +93,12 @@ def build_start_request():
     }
 
     payload = {
-        "background": {
-            "data": "NNnLYRoWX0vlByj2Eqq04imAZYQNJYfaFP8Qv+5H10nuGu4DJ4ukrCtUOR6hLq38RAweTVtYlrVUOoUimELMbtZr9uDLSpkAk0ul+uG8THywW+wMcOJxPaCrK4lNz2jgiO2KheWwd4+vx/spQunRBW4Ktl+1NJSsYJkGo654NPU1GZwcOINPBMzx5z3hXAKB3YP/I0nnjGaoVSm5jzwP1CBy0u+Knz4E12FCg/BAbxDkTRe75Mn0WzFfvF4Q0Qh7KCXnP0cz1Qyxa68gMFU8XVMDFIPkYfjVfvGUhNE7I0SS2NUqByXM7xTGfu9RmYu1A/Oi8lobsB7e2jlzrYTEAsRew2+ANCxwt93xUGv+bqc="
-        }
+        # "background": {
+        #     "data": "NNnLYRoWX0vlByj2Eqq04imAZYQNJYfaFP8Qv+5H10nuGu4DJ4ukrCtUOR6hLq38RAweTVtYlrVUOoUimELMbtZr9uDLSpkAk0ul+uG8THywW+wMcOJxPaCrK4lNz2jgiO2KheWwd4+vx/spQunRBW4Ktl+1NJSsYJkGo654NPU1GZwcOINPBMzx5z3hXAKB3YP/I0nnjGaoVSm5jzwP1CBy0u+Knz4E12FCg/BAbxDkTRe75Mn0WzFfvF4Q0Qh7KCXnP0cz1Qyxa68gMFU8XVMDFIPkYfjVfvGUhNE7I0SS2NUqByXM7xTGfu9RmYu1A/Oi8lobsB7e2jlzrYTEAsRew2+ANCxwt93xUGv+bqc="
+        # }
     }
 
-    print(
+    logger.info(
         "初始请求为:\n", {"header": header, "parameter": parameter, "payload": payload}
     )
     return {"header": header, "parameter": parameter, "payload": payload}
@@ -126,6 +135,7 @@ def build_ping_request():
     保活协议
     """
     header = {"app_id": app_id, "ctrl": "ping", "request_id": str(uuid.uuid4())}
+    logger.info("\n", header)
     return {"header": header}
 
 
