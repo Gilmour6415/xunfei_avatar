@@ -4,6 +4,7 @@ import uuid
 import base64
 import logging
 import time
+from aiohttp import request
 from websockets import connect
 from auth_util import AuthUtil
 from avatar_ws_util import AvatarWsUtil
@@ -21,7 +22,8 @@ avatar_id = "110017006"  # 授权开通的形象id
 VCN = "x4_lingxiaoqi_oral"  # 发音人参数
 TEXT = "欢迎来到讯飞开放平台"
 
-
+# 生成request_id
+request_id = str(uuid.uuid4())
 # 构建请求URL
 
 
@@ -36,7 +38,7 @@ async def main():
     avatar_ws_util = AvatarWsUtil(request_url)
 
     # veryfi if the websocket is connected [done]
-    await avatar_ws_util.connect()
+    # await avatar_ws_util.connect()
 
     # Send start frame
     print("---buiding start request---")
@@ -75,10 +77,13 @@ async def send_ping(avatar_ws_util):
 
 
 def build_start_request():
+    """
+    构建开始请求
+    """
     header = {
         "app_id": app_id,
         "ctrl": "start",
-        "request_id": str(uuid.uuid4()),
+        "request_id": request_id,
         "scene_id": "171542078621356032",
     }
 
@@ -92,19 +97,33 @@ def build_start_request():
         "subtitle": {"subtitle": 1, "font_color": "#FFFFFF"},
     }
 
+    # payload = {
+    #     "background": {
+    #         "data": "NNnLYRoWX0vlByj2Eqq04imAZYQNJYfaFP8Qv+5H10nuGu4DJ4ukrCtUOR6hLq38RAweTVtYlrVUOoUimELMbtZr9uDLSpkAk0ul+uG8THywW+wMcOJxPaCrK4lNz2jgiO2KheWwd4+vx/spQunRBW4Ktl+1NJSsYJkGo654NPU1GZwcOINPBMzx5z3hXAKB3YP/I0nnjGaoVSm5jzwP1CBy0u+Knz4E12FCg/BAbxDkTRe75Mn0WzFfvF4Q0Qh7KCXnP0cz1Qyxa68gMFU8XVMDFIPkYfjVfvGUhNE7I0SS2NUqByXM7xTGfu9RmYu1A/Oi8lobsB7e2jlzrYTEAsRew2+ANCxwt93xUGv+bqc="
+    #     }
+    # }
     payload = {
-        # "background": {
-        #     "data": "NNnLYRoWX0vlByj2Eqq04imAZYQNJYfaFP8Qv+5H10nuGu4DJ4ukrCtUOR6hLq38RAweTVtYlrVUOoUimELMbtZr9uDLSpkAk0ul+uG8THywW+wMcOJxPaCrK4lNz2jgiO2KheWwd4+vx/spQunRBW4Ktl+1NJSsYJkGo654NPU1GZwcOINPBMzx5z3hXAKB3YP/I0nnjGaoVSm5jzwP1CBy0u+Knz4E12FCg/BAbxDkTRe75Mn0WzFfvF4Q0Qh7KCXnP0cz1Qyxa68gMFU8XVMDFIPkYfjVfvGUhNE7I0SS2NUqByXM7xTGfu9RmYu1A/Oi8lobsB7e2jlzrYTEAsRew2+ANCxwt93xUGv+bqc="
-        # }
+        "avatar": {
+            "request_id": request_id,
+            "period": "global",
+            "event_type": "stream_info",
+            "error_code": 0,
+            "error_message": "",
+            "stream_url": "xrtcs://xrtc-cn-east-2.xf-yun.com/ase0001015chu18f70f9df240442402",  # 拉流地址
+        },
     }
 
-    logger.info(
-        "初始请求为:\n", {"header": header, "parameter": parameter, "payload": payload}
-    )
+    # logger.info(
+    #     "初始请求为:\n"
+    #     + str({"header": header, "parameter": parameter, "payload": payload}),
+    # )
     return {"header": header, "parameter": parameter, "payload": payload}
 
 
 def build_text_request(text):
+    """
+    发送文本
+    """
     header = {"app_id": app_id, "ctrl": "text_driver", "request_id": str(uuid.uuid4())}
 
     parameter = {
@@ -118,6 +137,9 @@ def build_text_request(text):
 
 
 def build_text_request0(text):
+    """
+    另一个文本协议
+    """
     header = {"app_id": app_id, "ctrl": "text_driver", "request_id": str(uuid.uuid4())}
 
     parameter = {
@@ -140,6 +162,9 @@ def build_ping_request():
 
 
 def build_text_interact_request(text):
+    """
+    文本交互协议
+    """
     header = {
         "app_id": app_id,
         "ctrl": "text_interact",

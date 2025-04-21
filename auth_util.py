@@ -10,53 +10,48 @@ import pytz
 
 class AuthUtil:
     @staticmethod
-    def assemble_request_url(
-        request_url: str, api_key: str, api_secret: str, method: str = "GET"
-    ) -> str:
-        """Assemble request URL with authentication parameters
+    def assemble_request_url(request_url, api_key, api_secret, method="GET"):
+        # 转换WebSocket的URL，ws转为http，wss转为https
+        http_request_url = request_url.replace("ws://", "http://").replace(
+            "wss://", "https://"
+        )
 
-        Args:
-            request_url: The original request URL
-            api_key: API key for authentication
-            api_secret: API secret for signing
-            method: HTTP method (default: GET)
-
-        Returns:
-            The signed request URL with authentication parameters
-        """
         try:
-            # Convert WebSocket URL to HTTP(S)
-            http_request_url = request_url.replace("ws://", "http://").replace(
-                "wss://", "https://"
-            )
-            url = urlparse(http_request_url)
+            # 解析 URL
+            url = urllib.parse.urlparse(http_request_url)
 
-            # Get UTC formatted date
-            date = datetime.now(pytz.utc).strftime("%a, %d %b %Y %H:%M:%S GMT")
+            # 设置时间格式并设置UTC时区
+            date = datetime.now(pytz.UTC).strftime("%a, %d %b %Y %H:%M:%S GMT")
             host = url.hostname
 
-            # Build signature string
-            path = url.path if url.path else "/"
-            builder = f"host: {host}\ndate: {date}\n{method} {path} HTTP/1.1"
+            # 构建签名字符串
+            signature_str = f"host: {host}\ndate: {date}\n{method} {url.path} HTTP/1.1"
+            print(signature_str)
+            print("--------------")
 
-            # Generate HMAC SHA-256 signature
-            digest = hmac.new(
-                api_secret.encode("utf-8"), builder.encode("utf-8"), hashlib.sha256
+            # 使用 HMAC-SHA-256 生成签名
+            secret_bytes = api_secret.encode("utf-8")
+            signature = hmac.new(
+                secret_bytes, signature_str.encode("utf-8"), hashlib.sha256
             ).digest()
-            sha = base64.b64encode(digest).decode("utf-8")
+            sha = base64.b64encode(signature).decode("utf-8")
 
-            # Build authorization header
+            # 生成授权头信息
             authorization = f'hmac username="{api_key}", algorithm="hmac-sha256", headers="host date request-line", signature="{sha}"'
             auth_base = base64.b64encode(authorization.encode("utf-8")).decode("utf-8")
 
-            # URL encode parameters and build final URL
-            return (
-                f"{request_url}?authorization={urllib.parse.quote(auth_base)}"
-                f"&host={urllib.parse.quote(host)}"
-                f"&date={urllib.parse.quote(date)}"
-            )
+            print("signature:", sha)
+            print("----------------------------")
+            print("authorization:", authorization)
+            print("--------------------")
+            print("authBase:", auth_base)
+
+            # 构建最终的请求 URL
+            final_url = f"{request_url}?authorization={urllib.parse.quote(auth_base)}&host={urllib.parse.quote(host)}&date={urllib.parse.quote(date)}"
+            return final_url
+
         except Exception as e:
-            raise RuntimeError(f"assemble requestUrl error: {str(e)}")
+            raise RuntimeError(f"assemble requestUrl error: {e}")
 
     @staticmethod
     def assemble_request_header(

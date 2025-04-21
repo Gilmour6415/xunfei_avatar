@@ -80,13 +80,13 @@ class AvatarWsUtil:
     ):
         self.countdown_latch = countdown_latch
         logger.info("starting...")
+        await self.connect()
         await self.connect_event.wait()
+        logger.info(f"connect_event is {self.connect_event}")
         await self.send(request)
         logging.info("start request sent")
 
     async def send(self, request: dict):
-        await self.connect()
-
         logger.info(
             f"state:\
             is connected: {self.is_connected},\
